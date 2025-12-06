@@ -165,6 +165,63 @@ export class GeminiProvider implements LLMProvider {
       cleaned = cleaned.slice(0, -3);
     }
     
+    // Sanitize any external images that slipped through
+    cleaned = this.sanitizeImages(cleaned);
+    
     return cleaned.trim();
+  }
+
+  /**
+   * Replace external image URLs with inline SVG placeholders
+   * This is a safety net in case the AI ignores the prompt instructions
+   */
+  private sanitizeImages(html: string): string {
+    // Match <img> tags with external URLs (http/https)
+    const imgPattern = /<img\s+[^>]*src\s*=\s*["'](https?:\/\/[^"']+)["'][^>]*\/?>/gi;
+    
+    return html.replace(imgPattern, (match, url) => {
+      // Extract alt text if present
+      const altMatch = match.match(/alt\s*=\s*["']([^"']*)["']/i);
+      const alt = altMatch ? altMatch[1] : 'Image placeholder';
+      
+      // Extract class if present
+      const classMatch = match.match(/class\s*=\s*["']([^"']*)["']/i);
+      const className = classMatch ? classMatch[1] : '';
+      
+      // Determine placeholder type based on URL or alt text
+      const lowerAlt = alt.toLowerCase();
+      const lowerUrl = url.toLowerCase();
+      
+      if (lowerAlt.includes('avatar') || lowerAlt.includes('user') || lowerAlt.includes('person') || 
+          lowerUrl.includes('avatar') || lowerUrl.includes('user')) {
+        // Avatar placeholder
+        return `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="${className}" role="img" aria-label="${alt}">
+          <circle cx="50" cy="50" r="50" fill="var(--color-primary, #6366f1)" opacity="0.2"/>
+          <circle cx="50" cy="38" r="18" fill="var(--color-primary, #6366f1)" opacity="0.4"/>
+          <ellipse cx="50" cy="75" rx="28" ry="20" fill="var(--color-primary, #6366f1)" opacity="0.4"/>
+        </svg>`;
+      } else if (lowerAlt.includes('logo') || lowerUrl.includes('logo')) {
+        // Logo placeholder
+        return `<svg viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="${className}" role="img" aria-label="${alt}">
+          <rect width="120" height="40" rx="4" fill="currentColor" opacity="0.1"/>
+          <rect x="10" y="12" width="16" height="16" rx="4" fill="currentColor" opacity="0.3"/>
+          <rect x="34" y="15" width="60" height="10" rx="2" fill="currentColor" opacity="0.2"/>
+        </svg>`;
+      } else {
+        // Generic image placeholder
+        const gradId = `placeholder-grad-${Math.random().toString(36).substr(2, 9)}`;
+        return `<svg viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg" class="${className}" role="img" aria-label="${alt}">
+          <defs>
+            <linearGradient id="${gradId}" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:var(--color-primary, #6366f1);stop-opacity:0.2"/>
+              <stop offset="100%" style="stop-color:var(--color-secondary, #8b5cf6);stop-opacity:0.3"/>
+            </linearGradient>
+          </defs>
+          <rect width="800" height="600" fill="url(#${gradId})"/>
+          <rect x="350" y="250" width="100" height="100" rx="12" fill="currentColor" opacity="0.15"/>
+          <circle cx="400" cy="300" r="30" fill="currentColor" opacity="0.2"/>
+        </svg>`;
+      }
+    });
   }
 }

@@ -8,6 +8,13 @@ import { getStylePreset } from './stylePresets';
 
 export const LANDING_PAGE_SYSTEM_PROMPT = `You are an elite web developer and UI/UX designer known for creating stunning, award-winning landing pages. Your designs are featured on sites like Awwwards and CSS Design Awards.
 
+## CRITICAL - FORBIDDEN (NEVER DO THESE)
+- NEVER use external image URLs (no Unsplash, placeholder.com, picsum, lorempixel, placehold.it, via.placeholder.com, etc.)
+- NEVER use <img src="http..."> or <img src="https..."> tags
+- NEVER reference any external image services or CDNs for images
+- ALL images MUST be inline SVG elements created directly in the HTML
+- If you need an image placeholder, use an inline <svg> element with shapes and gradients
+
 ## CORE REQUIREMENTS
 
 ### Technical Excellence
@@ -311,6 +318,11 @@ Return ONLY the complete HTML code with embedded CSS. No markdown, no explanatio
  */
 export const EDIT_LANDING_PAGE_SYSTEM_PROMPT = `You are an elite web developer and UI/UX designer. Your task is to modify an existing landing page based on the user's instructions while maintaining or improving its visual quality.
 
+## CRITICAL - FORBIDDEN (NEVER DO THESE)
+- NEVER use external image URLs (no Unsplash, placeholder.com, picsum, lorempixel, etc.)
+- NEVER use <img src="http..."> or <img src="https..."> tags
+- ALL images MUST be inline SVG elements
+
 ## REQUIREMENTS
 1. Apply ONLY the requested changes
 2. Preserve the overall design language and styling unless asked to change it
@@ -355,6 +367,11 @@ Remember to use the exact output format with [HTML_START], [HTML_END], [SUMMARY_
  * System prompt for editing a specific section only
  */
 export const EDIT_SECTION_SYSTEM_PROMPT = `You are an elite web developer and UI/UX designer. Your task is to modify a SPECIFIC SECTION of a landing page based on the user's instructions.
+
+## CRITICAL - FORBIDDEN (NEVER DO THESE)
+- NEVER use external image URLs (no Unsplash, placeholder.com, picsum, lorempixel, etc.)
+- NEVER use <img src="http..."> or <img src="https..."> tags
+- ALL images MUST be inline SVG elements
 
 ## CRITICAL REQUIREMENTS
 1. You will receive ONLY the section HTML to edit, not the full page
