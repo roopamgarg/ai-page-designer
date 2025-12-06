@@ -1,14 +1,16 @@
 /**
  * Preview Component
- * Responsibility: Device toggle UI and preview container
+ * Responsibility: Device toggle UI, edit mode toggle, and preview container
  */
 'use client';
 
-import { useState } from 'react';
+import { useState, ReactNode } from 'react';
 import { PreviewFrame } from './PreviewFrame';
+import { EditablePreviewFrame } from './EditablePreviewFrame';
 
 interface PreviewProps {
   html: string;
+  onHtmlChange?: (html: string) => void;
 }
 
 type DeviceType = 'desktop' | 'tablet' | 'mobile';
@@ -17,7 +19,7 @@ interface DeviceConfig {
   type: DeviceType;
   label: string;
   width: string;
-  icon: JSX.Element;
+  icon: ReactNode;
 }
 
 const devices: DeviceConfig[] = [
@@ -56,10 +58,14 @@ const devices: DeviceConfig[] = [
   },
 ];
 
-export function Preview({ html }: PreviewProps) {
+export function Preview({ html, onHtmlChange }: PreviewProps) {
   const [selectedDevice, setSelectedDevice] = useState<DeviceType>('desktop');
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const currentDevice = devices.find((d) => d.type === selectedDevice) || devices[0];
+
+  // Only allow edit mode if onHtmlChange callback is provided
+  const canEdit = !!onHtmlChange;
 
   return (
     <div className="flex flex-col h-full">
@@ -67,7 +73,7 @@ export function Preview({ html }: PreviewProps) {
       <div className="
         flex
         items-center
-        justify-center
+        justify-between
         gap-1
         p-2
         bg-zinc-800/50
@@ -75,10 +81,41 @@ export function Preview({ html }: PreviewProps) {
         border-zinc-700
         rounded-t-xl
       ">
-        {devices.map((device) => (
+        {/* Device Selector */}
+        <div className="flex items-center gap-1">
+          {devices.map((device) => (
+            <button
+              key={device.type}
+              onClick={() => setSelectedDevice(device.type)}
+              className={`
+                flex
+                items-center
+                gap-2
+                px-4
+                py-2
+                rounded-lg
+                text-sm
+                font-medium
+                transition-all
+                duration-200
+                ${
+                  selectedDevice === device.type
+                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50'
+                }
+              `}
+              title={device.label}
+            >
+              {device.icon}
+              <span className="hidden sm:inline">{device.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Edit Mode Toggle */}
+        {canEdit && (
           <button
-            key={device.type}
-            onClick={() => setSelectedDevice(device.type)}
+            onClick={() => setIsEditMode(!isEditMode)}
             className={`
               flex
               items-center
@@ -91,17 +128,26 @@ export function Preview({ html }: PreviewProps) {
               transition-all
               duration-200
               ${
-                selectedDevice === device.type
-                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50'
+                isEditMode
+                  ? 'bg-amber-500 text-amber-950 border border-amber-400'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50 border border-transparent'
               }
             `}
-            title={device.label}
+            title={isEditMode ? 'Exit Edit Mode' : 'Enter Edit Mode'}
           >
-            {device.icon}
-            <span className="hidden sm:inline">{device.label}</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" 
+              />
+            </svg>
+            <span className="hidden sm:inline">
+              {isEditMode ? 'Exit Edit' : 'Direct Edit'}
+            </span>
           </button>
-        ))}
+        )}
       </div>
 
       {/* Preview Container */}
@@ -112,9 +158,33 @@ export function Preview({ html }: PreviewProps) {
         overflow-auto
         rounded-b-xl
       ">
-        <PreviewFrame html={html} deviceWidth={currentDevice.width} />
+        {isEditMode && onHtmlChange ? (
+          <EditablePreviewFrame 
+            html={html} 
+            deviceWidth={currentDevice.width}
+            onHtmlChange={onHtmlChange}
+          />
+        ) : (
+          <PreviewFrame html={html} deviceWidth={currentDevice.width} />
+        )}
       </div>
+
+      {/* Edit Mode Hint */}
+      {isEditMode && (
+        <div className="
+          px-4
+          py-2
+          bg-amber-500/10
+          border-t
+          border-amber-500/20
+          text-center
+        ">
+          <p className="text-xs text-amber-400/80">
+            <span className="font-medium">Edit Mode:</span> Click any element to select it. 
+            Double-click text to edit. Use the toolbar to modify styles, links, and images.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
-
