@@ -3,6 +3,7 @@
  */
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { LLMProvider } from './types';
+import { StylePresetId } from '@/types/stylePresets';
 import { 
   LANDING_PAGE_SYSTEM_PROMPT, 
   EDIT_LANDING_PAGE_SYSTEM_PROMPT,
@@ -25,13 +26,13 @@ export class GeminiProvider implements LLMProvider {
     this.modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
   }
 
-  async generateLandingPage(prompt: string): Promise<string> {
+  async generateLandingPage(prompt: string, stylePreset?: StylePresetId): Promise<string> {
     const model = this.client.getGenerativeModel({
       model: this.modelName,
       systemInstruction: LANDING_PAGE_SYSTEM_PROMPT,
     });
 
-    const userPrompt = buildUserPrompt(prompt);
+    const userPrompt = buildUserPrompt(prompt, stylePreset);
 
     const result = await model.generateContent(userPrompt);
     const response = result.response;

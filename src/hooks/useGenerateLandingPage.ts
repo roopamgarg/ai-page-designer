@@ -5,11 +5,11 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { GenerationState, GenerateResponse, ChatMessage } from '@/types';
+import { GenerationState, GenerateResponse, ChatMessage, StylePresetId } from '@/types';
 
 interface UseGenerateLandingPageReturn extends GenerationState {
   messages: ChatMessage[];
-  generate: (prompt: string) => Promise<void>;
+  generate: (prompt: string, stylePreset?: StylePresetId) => Promise<void>;
   edit: (currentHtml: string, editPrompt: string) => Promise<void>;
   reset: () => void;
 }
@@ -49,7 +49,7 @@ export function useGenerateLandingPage(): UseGenerateLandingPageReturn {
     setMessages((prev) => [...prev, message]);
   };
 
-  const generate = useCallback(async (prompt: string): Promise<void> => {
+  const generate = useCallback(async (prompt: string, stylePreset?: StylePresetId): Promise<void> => {
     // Add user message
     addUserMessage(prompt);
 
@@ -65,7 +65,7 @@ export function useGenerateLandingPage(): UseGenerateLandingPageReturn {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, stylePreset }),
       });
 
       const data: GenerateResponse = await response.json();

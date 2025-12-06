@@ -1,3 +1,5 @@
+import { StylePresetId } from '@/types/stylePresets';
+
 /**
  * LLM Provider Interface
  * All LLM providers must implement this interface
@@ -6,9 +8,10 @@ export interface LLMProvider {
   /**
    * Generate a landing page HTML based on the user prompt
    * @param prompt - User's description of the desired landing page
+   * @param stylePreset - Optional style preset to apply
    * @returns Promise resolving to the generated HTML string
    */
-  generateLandingPage(prompt: string): Promise<string>;
+  generateLandingPage(prompt: string, stylePreset?: StylePresetId): Promise<string>;
 
   /**
    * Edit an existing landing page based on a follow-up prompt

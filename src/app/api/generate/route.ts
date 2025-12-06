@@ -43,7 +43,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateR
     // Determine if this is an edit or new generation
     const html = isEditRequest
       ? await provider.editLandingPage(body.currentHtml!, body.prompt)
-      : await provider.generateLandingPage(body.prompt);
+      : await provider.generateLandingPage(body.prompt, body.stylePreset);
 
     return NextResponse.json({
       success: true,
