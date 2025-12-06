@@ -1,65 +1,196 @@
-import Image from "next/image";
+/**
+ * Main Page
+ * Responsibility: Page composition and layout
+ */
+'use client';
+
+import { PromptForm } from '@/components/PromptForm';
+import { Preview } from '@/components/Preview';
+import { DownloadButton } from '@/components/DownloadButton';
+import { useGenerateLandingPage } from '@/hooks/useGenerateLandingPage';
 
 export default function Home() {
+  const { isLoading, error, generatedHtml, generate, reset } = useGenerateLandingPage();
+
+  const hasGenerated = generatedHtml !== null;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen animated-gradient">
+      {/* Header */}
+      <header className="border-b border-zinc-800/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+              <svg
+                className="w-6 h-6 text-zinc-900"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-zinc-100">
+                AI Landing Page Generator
+              </h1>
+              <p className="text-xs text-zinc-500">Powered by Gemini</p>
+            </div>
+          </div>
+
+          {hasGenerated && (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={reset}
+                className="
+                  px-4
+                  py-2
+                  text-sm
+                  text-zinc-400
+                  hover:text-zinc-200
+                  transition-colors
+                "
+              >
+                ← New Page
+              </button>
+              <DownloadButton html={generatedHtml} />
+            </div>
+          )}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        {!hasGenerated ? (
+          /* Input View */
+          <div className="max-w-2xl mx-auto space-y-8">
+            {/* Hero Section */}
+            <div className="text-center space-y-4 pt-8 pb-4">
+              <h2 className="text-4xl sm:text-5xl font-bold">
+                <span className="gradient-text">Generate</span>{' '}
+                <span className="text-zinc-100">Landing Pages</span>
+              </h2>
+              <p className="text-lg text-zinc-400 max-w-lg mx-auto">
+                Describe your idea and let AI create a beautiful, 
+                production-ready landing page in seconds.
+              </p>
+            </div>
+
+            {/* Form Card */}
+            <div className="glass rounded-2xl p-6 sm:p-8 glow">
+              <PromptForm onSubmit={generate} isLoading={isLoading} />
+              
+              {/* Error Display */}
+              {error && (
+                <div className="mt-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+                  <div className="flex items-start gap-3">
+                    <svg
+                      className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-medium text-red-400">
+                        Generation Failed
+                      </p>
+                      <p className="text-sm text-red-300/80 mt-1">{error}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Features */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-8">
+              {[
+                {
+                  icon: (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M13 10V3L4 14h7v7l9-11h-7z"
+                    />
+                  ),
+                  title: 'AI-Powered',
+                  description: 'Gemini generates unique designs',
+                },
+                {
+                  icon: (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
+                  ),
+                  title: 'Download Ready',
+                  description: 'Get standalone HTML files',
+                },
+                {
+                  icon: (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  ),
+                  title: 'Live Preview',
+                  description: 'Preview on all device sizes',
+                },
+              ].map((feature, index) => (
+                <div
+                  key={index}
+                  className="
+                    p-5
+                    bg-zinc-900/30
+                    border
+                    border-zinc-800
+                    rounded-xl
+                    text-center
+                  "
+                >
+                  <div className="w-10 h-10 mx-auto mb-3 rounded-lg bg-zinc-800 flex items-center justify-center">
+                    <svg
+                      className="w-5 h-5 text-amber-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      {feature.icon}
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-semibold text-zinc-200">
+                    {feature.title}
+                  </h3>
+                  <p className="text-xs text-zinc-500 mt-1">
+                    {feature.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          /* Preview View */
+          <div className="h-[calc(100vh-180px)]">
+            <Preview html={generatedHtml} />
+          </div>
+        )}
+      </div>
+    </main>
   );
 }
