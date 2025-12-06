@@ -21,14 +21,15 @@ export class GeminiProvider implements LLMProvider {
   private client: GoogleGenerativeAI;
   private modelName: string;
 
-  constructor() {
-    const apiKey = process.env.GEMINI_API_KEY;
+  constructor(apiKey?: string) {
+    // Use provided API key, fallback to environment variable
+    const key = apiKey || process.env.GEMINI_API_KEY;
     
-    if (!apiKey) {
-      throw new Error('GEMINI_API_KEY environment variable is not set');
+    if (!key) {
+      throw new Error('GEMINI_API_KEY is required. Please provide an API key.');
     }
     
-    this.client = new GoogleGenerativeAI(apiKey);
+    this.client = new GoogleGenerativeAI(key);
     this.modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
   }
 

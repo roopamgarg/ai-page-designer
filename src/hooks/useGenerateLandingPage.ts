@@ -7,6 +7,7 @@
 import { useState, useCallback } from 'react';
 import { GenerationState, GenerateResponse, ChatMessage, StylePresetId } from '@/types';
 import { extractSection, replaceSection, getSectionContext } from '@/lib/utils/sectionParser';
+import { getStoredApiKey } from '@/lib/utils/apiKey';
 
 interface EditSectionParams {
   fullHtml: string;
@@ -70,12 +71,13 @@ export function useGenerateLandingPage(): UseGenerateLandingPageReturn {
     });
 
     try {
+      const apiKey = getStoredApiKey();
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt, stylePreset }),
+        body: JSON.stringify({ prompt, stylePreset, ...(apiKey && { apiKey }) }),
       });
 
       const data: GenerateResponse = await response.json();
@@ -123,6 +125,7 @@ export function useGenerateLandingPage(): UseGenerateLandingPageReturn {
     }));
 
     try {
+      const apiKey = getStoredApiKey();
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: {
@@ -131,6 +134,7 @@ export function useGenerateLandingPage(): UseGenerateLandingPageReturn {
         body: JSON.stringify({ 
           prompt: editPrompt,
           currentHtml,
+          ...(apiKey && { apiKey }),
         }),
       });
 
@@ -202,6 +206,7 @@ export function useGenerateLandingPage(): UseGenerateLandingPageReturn {
       // Get context about surrounding sections
       const context = getSectionContext(fullHtml, sectionId);
 
+      const apiKey = getStoredApiKey();
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: {
@@ -213,6 +218,7 @@ export function useGenerateLandingPage(): UseGenerateLandingPageReturn {
           sectionName,
           sectionHtml: section.html,
           sectionContext: context,
+          ...(apiKey && { apiKey }),
         }),
       });
 
@@ -266,6 +272,7 @@ export function useGenerateLandingPage(): UseGenerateLandingPageReturn {
     }));
 
     try {
+      const apiKey = getStoredApiKey();
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: {
@@ -275,6 +282,7 @@ export function useGenerateLandingPage(): UseGenerateLandingPageReturn {
           prompt: question,
           currentHtml,
           mode: 'ask',
+          ...(apiKey && { apiKey }),
         }),
       });
 

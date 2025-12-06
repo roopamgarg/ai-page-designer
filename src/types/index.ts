@@ -34,6 +34,8 @@ export interface GenerateRequest {
   sectionContext?: string;
   /** Chat mode: edit or ask */
   mode?: ChatMode;
+  /** User-provided API key (optional, falls back to env variable) */
+  apiKey?: string;
 }
 
 export interface GenerateResponse {

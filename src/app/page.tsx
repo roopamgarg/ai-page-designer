@@ -15,10 +15,12 @@ import { ChatHistory } from '@/components/ChatHistory';
 import { SectionSelector, EditTarget } from '@/components/SectionSelector';
 import { ChatModeToggle } from '@/components/ChatModeToggle';
 import { UndoRedoButtons } from '@/components/UndoRedoButtons';
+import { ApiKeyModal } from '@/components/ApiKeyModal';
 import { useGenerateLandingPage } from '@/hooks/useGenerateLandingPage';
 import { useHistory } from '@/hooks/useHistory';
 import { parseSections, Section } from '@/lib/utils/sectionParser';
 import { ChatMode, GenerateResponse } from '@/types';
+import { getStoredApiKey, storeApiKey } from '@/lib/utils/apiKey';
 
 export default function Home() {
   const { isLoading, error, generatedHtml, messages, generate, edit, editSection, ask, reset } = useGenerateLandingPage();
@@ -36,8 +38,23 @@ export default function Home() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editTarget, setEditTarget] = useState<EditTarget>('entire-page');
   const [chatMode, setChatMode] = useState<ChatMode>('edit');
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   
   const hasGenerated = generatedHtml !== null;
+  
+  // Check if error is related to API key and show modal
+  useEffect(() => {
+    if (error && (
+      error.includes('GEMINI_API_KEY') || 
+      error.includes('API key') ||
+      error.includes('api key')
+    )) {
+      // Only show modal if no API key is stored
+      if (!getStoredApiKey()) {
+        setShowApiKeyModal(true);
+      }
+    }
+  }, [error]);
   
   // Parse sections once and share between selector and submit handler
   const currentSections = useMemo<Section[]>(() => {
@@ -146,6 +163,7 @@ export default function Home() {
     prompt: string;
   }): Promise<{ success: boolean; html?: string; error?: string }> => {
     try {
+      const apiKey = getStoredApiKey();
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: {
@@ -156,6 +174,7 @@ export default function Home() {
           sectionHtml: request.elementHtml,
           sectionId: 'element',
           sectionName: `${request.tagName} element`,
+          ...(apiKey && { apiKey }),
         }),
       });
 
@@ -181,8 +200,20 @@ export default function Home() {
   // Use editableHtml for preview and download (allows edits to reflect)
   const currentHtml = editableHtml || generatedHtml || '';
 
+  const handleApiKeySet = (apiKey: string) => {
+    storeApiKey(apiKey);
+    setShowApiKeyModal(false);
+    // If there was an error, it should be cleared on next request
+  };
+
   return (
     <main className="min-h-screen animated-gradient">
+      {/* API Key Modal */}
+      <ApiKeyModal
+        isOpen={showApiKeyModal}
+        onClose={() => setShowApiKeyModal(false)}
+        onApiKeySet={handleApiKeySet}
+      />
       {/* Fullscreen Overlay */}
       {isFullscreen && (
         <div className="fixed inset-0 z-50 bg-zinc-950">
@@ -284,7 +315,40 @@ export default function Home() {
             </div>
           </div>
 
-          {hasGenerated && (
+          <div className="flex items-center gap-3">
+            {/* API Key Settings Button */}
+            <button
+              onClick={() => setShowApiKeyModal(true)}
+              className="
+                flex
+                items-center
+                gap-2
+                px-3
+                py-2
+                text-sm
+                text-zinc-400
+                border
+                border-zinc-700
+                rounded-lg
+                hover:text-zinc-200
+                hover:border-zinc-600
+                transition-all
+                duration-200
+              "
+              title="Manage API Key"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                />
+              </svg>
+              <span className="hidden sm:inline">API Key</span>
+            </button>
+
+            {hasGenerated && (
             <div className="flex items-center gap-3">
               <button
                 onClick={handleReset}
@@ -375,7 +439,8 @@ export default function Home() {
               <ViewToggle mode={viewMode} onModeChange={setViewMode} />
               <DownloadButton html={currentHtml} />
             </div>
-          )}
+            )}
+          </div>
         </div>
       </header>
 

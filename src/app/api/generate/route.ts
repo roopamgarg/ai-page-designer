@@ -22,7 +22,21 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateR
       );
     }
 
-    const provider = getLLMProvider();
+    // Get API key from request body or use environment variable
+    const apiKey = body.apiKey || process.env.GEMINI_API_KEY;
+    
+    if (!apiKey) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'GEMINI_API_KEY is required. Please provide an API key.',
+          html: '' 
+        },
+        { status: 400 }
+      );
+    }
+
+    const provider = getLLMProvider(apiKey);
 
     // Handle ask mode
     if (body.mode === 'ask' && body.currentHtml) {
