@@ -40,10 +40,30 @@ export function EditablePreviewFrame({
 }: EditablePreviewFrameProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const lastInternalHtmlRef = useRef<string>('');
+  const scrollPositionRef = useRef<{ x: number; y: number } | null>(null);
+  const previousRenderedHtmlRef = useRef<string>('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   
   // Track the HTML to render - only update when external changes come in
   const [renderedHtml, setRenderedHtml] = useState(html);
+  
+  // Save scroll position before HTML changes
+  useEffect(() => {
+    if (previousRenderedHtmlRef.current && previousRenderedHtmlRef.current !== renderedHtml) {
+      try {
+        const iframe = iframeRef.current;
+        if (iframe?.contentWindow) {
+          scrollPositionRef.current = {
+            x: iframe.contentWindow.scrollX || 0,
+            y: iframe.contentWindow.scrollY || 0,
+          };
+        }
+      } catch (e) {
+        // Cross-origin or other error, ignore
+      }
+    }
+    previousRenderedHtmlRef.current = renderedHtml;
+  }, [renderedHtml]);
   
   // Update rendered HTML only when external html prop changes (not from internal edits)
   useEffect(() => {
@@ -129,6 +149,38 @@ export function EditablePreviewFrame({
     return () => window.removeEventListener('message', handleMessage);
   }, [handleMessage]);
 
+  // Restore scroll position after iframe loads
+  const handleIframeLoad = useCallback(() => {
+    const savedScroll = scrollPositionRef.current;
+    if (!savedScroll) return;
+    
+    try {
+      const iframe = iframeRef.current;
+      if (iframe?.contentWindow && iframe.contentDocument) {
+        // Wait for content to be fully rendered
+        const restoreScroll = () => {
+          if (iframe.contentWindow && scrollPositionRef.current) {
+            iframe.contentWindow.scrollTo(
+              scrollPositionRef.current.x,
+              scrollPositionRef.current.y
+            );
+            scrollPositionRef.current = null;
+          }
+        };
+        
+        // Try immediately
+        restoreScroll();
+        
+        // Also try after short delays in case content isn't ready
+        setTimeout(restoreScroll, 10);
+        setTimeout(restoreScroll, 50);
+      }
+    } catch (e) {
+      // Cross-origin or other error, ignore
+      scrollPositionRef.current = null;
+    }
+  }, []);
+
   // Send disable message when unmounting or when edit mode is disabled
   useEffect(() => {
     return () => {
@@ -198,6 +250,7 @@ export function EditablePreviewFrame({
         title="Editable Landing Page Preview"
         className="w-full h-full border-0"
         sandbox="allow-scripts allow-same-origin"
+        onLoad={handleIframeLoad}
       />
     </div>
   );
