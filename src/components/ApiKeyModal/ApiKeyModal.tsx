@@ -5,7 +5,7 @@
 'use client';
 
 import { useState, FormEvent, useEffect } from 'react';
-import { storeApiKey, getStoredApiKey } from '@/lib/utils/apiKey';
+import { storeApiKey, getStoredApiKey, clearStoredApiKey } from '@/lib/utils/apiKey';
 
 interface ApiKeyModalProps {
   isOpen: boolean;
@@ -59,6 +59,9 @@ export function ApiKeyModal({ isOpen, onClose, onApiKeySet }: ApiKeyModalProps) 
 
   const handleRemove = () => {
     if (confirm('Are you sure you want to remove your API key? You will need to enter it again to use the application.')) {
+      // Clear from localStorage
+      clearStoredApiKey();
+      // Clear local state
       setApiKey('');
       setError(null);
     }
