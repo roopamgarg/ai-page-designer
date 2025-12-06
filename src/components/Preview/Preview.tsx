@@ -8,9 +8,16 @@ import { useState, ReactNode } from 'react';
 import { PreviewFrame } from './PreviewFrame';
 import { EditablePreviewFrame } from './EditablePreviewFrame';
 
+interface AiEditRequest {
+  elementHtml: string;
+  tagName: string;
+  prompt: string;
+}
+
 interface PreviewProps {
   html: string;
   onHtmlChange?: (html: string) => void;
+  onAiEditRequest?: (request: AiEditRequest) => Promise<{ success: boolean; html?: string; error?: string }>;
 }
 
 type DeviceType = 'desktop' | 'tablet' | 'mobile';
@@ -58,7 +65,7 @@ const devices: DeviceConfig[] = [
   },
 ];
 
-export function Preview({ html, onHtmlChange }: PreviewProps) {
+export function Preview({ html, onHtmlChange, onAiEditRequest }: PreviewProps) {
   const [selectedDevice, setSelectedDevice] = useState<DeviceType>('desktop');
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -163,6 +170,7 @@ export function Preview({ html, onHtmlChange }: PreviewProps) {
             html={html} 
             deviceWidth={currentDevice.width}
             onHtmlChange={onHtmlChange}
+            onAiEditRequest={onAiEditRequest}
           />
         ) : (
           <PreviewFrame html={html} deviceWidth={currentDevice.width} />
@@ -181,7 +189,7 @@ export function Preview({ html, onHtmlChange }: PreviewProps) {
         ">
           <p className="text-xs text-amber-400/80">
             <span className="font-medium">Edit Mode:</span> Click any element to select it. 
-            Double-click text to edit. Use the toolbar to modify styles, links, and images.
+            Double-click text to edit. Use toolbar for styles, or describe changes with AI.
           </p>
         </div>
       )}

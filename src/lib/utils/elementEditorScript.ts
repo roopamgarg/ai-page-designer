@@ -15,6 +15,8 @@ export function generateEditorScript(): string {
   let selectedElement = null;
   let toolbar = null;
   let isEditing = false;
+  let isAiEditing = false;
+  let aiPromptInput = null;
 
   // Elements that should not be selectable
   const IGNORE_SELECTORS = ['html', 'head', 'body', 'script', 'style', 'meta', 'link', 'title'];
@@ -418,6 +420,45 @@ export function generateEditorScript(): string {
     
     toolbar.appendChild(styleSection);
     
+    // AI Edit section
+    const aiSection = document.createElement('div');
+    aiSection.className = 'toolbar-section';
+    aiSection.style.flexDirection = 'column';
+    
+    const aiLabel = document.createElement('div');
+    aiLabel.className = 'toolbar-label';
+    aiLabel.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> AI Edit';
+    aiSection.appendChild(aiLabel);
+    
+    const aiInputRow = document.createElement('div');
+    aiInputRow.style.display = 'flex';
+    aiInputRow.style.gap = '4px';
+    
+    aiPromptInput = document.createElement('input');
+    aiPromptInput.type = 'text';
+    aiPromptInput.placeholder = 'Describe changes... (e.g., "make it blue")';
+    aiPromptInput.style.flex = '1';
+    aiPromptInput.onkeydown = (e) => {
+      if (e.key === 'Enter' && aiPromptInput.value.trim()) {
+        submitAiEdit(el, aiPromptInput.value.trim());
+      }
+    };
+    aiInputRow.appendChild(aiPromptInput);
+    
+    const aiSubmitBtn = document.createElement('button');
+    aiSubmitBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>';
+    aiSubmitBtn.title = 'Apply AI Edit';
+    aiSubmitBtn.style.flexShrink = '0';
+    aiSubmitBtn.onclick = () => {
+      if (aiPromptInput.value.trim()) {
+        submitAiEdit(el, aiPromptInput.value.trim());
+      }
+    };
+    aiInputRow.appendChild(aiSubmitBtn);
+    
+    aiSection.appendChild(aiInputRow);
+    toolbar.appendChild(aiSection);
+
     // Actions section
     const actionsSection = document.createElement('div');
     actionsSection.className = 'toolbar-section';
@@ -528,6 +569,96 @@ export function generateEditorScript(): string {
     el.addEventListener('keydown', handleKeydown);
   }
 
+  // Submit AI edit request
+  function submitAiEdit(el, prompt) {
+    if (isAiEditing) return;
+    isAiEditing = true;
+
+    // Get clean element HTML (without editor classes)
+    const clone = el.cloneNode(true);
+    clone.classList.remove('element-editor-selected', 'element-editor-hover');
+    clone.removeAttribute('contenteditable');
+    const elementHtml = clone.outerHTML;
+    
+    // Get element tag for context
+    const tagName = el.tagName.toLowerCase();
+    
+    // Show loading state
+    if (aiPromptInput) {
+      aiPromptInput.disabled = true;
+      aiPromptInput.value = 'AI is editing...';
+    }
+    
+    // Store reference to element for later update
+    window.__pendingAiEditElement = el;
+    
+    sendToParent('ai-edit-request', {
+      elementHtml,
+      tagName,
+      prompt,
+      path: getElementPath(el),
+    });
+  }
+
+  // Apply AI edit result
+  function applyAiEditResult(newHtml) {
+    const el = window.__pendingAiEditElement;
+    if (!el || !newHtml) {
+      resetAiEditState();
+      return;
+    }
+    
+    try {
+      // Create a temporary container to parse the new HTML
+      const temp = document.createElement('div');
+      temp.innerHTML = newHtml.trim();
+      const newElement = temp.firstElementChild;
+      
+      if (newElement) {
+        // Replace the old element with the new one
+        el.parentNode.replaceChild(newElement, el);
+        
+        // Select the new element
+        selectedElement = newElement;
+        newElement.classList.add('element-editor-selected');
+        
+        // Update toolbar for new element
+        updateToolbar(newElement);
+        
+        // Notify parent of changes
+        notifyChange();
+      }
+    } catch (err) {
+      console.error('Failed to apply AI edit:', err);
+    }
+    
+    resetAiEditState();
+  }
+
+  // Reset AI edit state
+  function resetAiEditState() {
+    isAiEditing = false;
+    window.__pendingAiEditElement = null;
+    if (aiPromptInput) {
+      aiPromptInput.disabled = false;
+      aiPromptInput.value = '';
+    }
+  }
+
+  // Show AI edit error
+  function showAiEditError(error) {
+    resetAiEditState();
+    if (aiPromptInput) {
+      aiPromptInput.value = '';
+      aiPromptInput.placeholder = error || 'Error - try again';
+      setTimeout(() => {
+        if (aiPromptInput) {
+          aiPromptInput.placeholder = 'Describe changes... (e.g., "make it blue")';
+        }
+      }, 3000);
+    }
+  }
+
   // Select element
   function selectElement(el) {
     if (selectedElement) {
@@ -625,12 +756,22 @@ export function generateEditorScript(): string {
   // Listen for messages from parent
   window.addEventListener('message', (e) => {
     if (e.data && e.data.source === 'element-editor-parent') {
-      if (e.data.type === 'disable-edit-mode') {
-        deselectElement();
-        document.removeEventListener('mouseover', handleMouseOver);
-        document.removeEventListener('mouseout', handleMouseOut);
-        document.removeEventListener('click', handleClick, true);
-        document.removeEventListener('keydown', handleKeydown);
+      switch (e.data.type) {
+        case 'disable-edit-mode':
+          deselectElement();
+          document.removeEventListener('mouseover', handleMouseOver);
+          document.removeEventListener('mouseout', handleMouseOut);
+          document.removeEventListener('click', handleClick, true);
+          document.removeEventListener('keydown', handleKeydown);
+          break;
+        
+        case 'ai-edit-result':
+          if (e.data.payload && e.data.payload.success) {
+            applyAiEditResult(e.data.payload.html);
+          } else {
+            showAiEditError(e.data.payload?.error);
+          }
+          break;
       }
     }
   });

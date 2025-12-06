@@ -16,7 +16,7 @@ import { SectionSelector, EditTarget } from '@/components/SectionSelector';
 import { ChatModeToggle } from '@/components/ChatModeToggle';
 import { useGenerateLandingPage } from '@/hooks/useGenerateLandingPage';
 import { parseSections, Section } from '@/lib/utils/sectionParser';
-import { ChatMode } from '@/types';
+import { ChatMode, GenerateResponse } from '@/types';
 
 export default function Home() {
   const { isLoading, error, generatedHtml, messages, generate, edit, editSection, ask, reset } = useGenerateLandingPage();
@@ -106,6 +106,41 @@ export default function Home() {
     setEditableHtml(html);
     setViewMode('preview');
   };
+
+  // Handle AI edit request for individual elements
+  const handleAiEditRequest = useCallback(async (request: {
+    elementHtml: string;
+    tagName: string;
+    prompt: string;
+  }): Promise<{ success: boolean; html?: string; error?: string }> => {
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: request.prompt,
+          sectionHtml: request.elementHtml,
+          sectionId: 'element',
+          sectionName: `${request.tagName} element`,
+        }),
+      });
+
+      const data: GenerateResponse = await response.json();
+
+      if (!data.success) {
+        return { success: false, error: data.error || 'AI edit failed' };
+      }
+
+      return { success: true, html: data.html };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Network error' 
+      };
+    }
+  }, []);
 
   const toggleFullscreen = useCallback(() => {
     setIsFullscreen((prev) => !prev);
@@ -504,7 +539,11 @@ export default function Home() {
             <div className="flex-1 min-w-0 flex flex-col">
               <div className="flex-1 min-h-0">
                 {viewMode === 'preview' ? (
-                  <Preview html={currentHtml} onHtmlChange={setEditableHtml} />
+                  <Preview 
+                    html={currentHtml} 
+                    onHtmlChange={setEditableHtml}
+                    onAiEditRequest={handleAiEditRequest}
+                  />
                 ) : (
                   <CodeEditor value={editableHtml} onChange={setEditableHtml} />
                 )}
