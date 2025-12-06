@@ -4,15 +4,36 @@
  */
 'use client';
 
+import { useState, useEffect } from 'react';
 import { PromptForm } from '@/components/PromptForm';
 import { Preview } from '@/components/Preview';
 import { DownloadButton } from '@/components/DownloadButton';
+import { CodeEditor } from '@/components/CodeEditor';
+import { ViewToggle, ViewMode } from '@/components/ViewToggle';
 import { useGenerateLandingPage } from '@/hooks/useGenerateLandingPage';
 
 export default function Home() {
   const { isLoading, error, generatedHtml, generate, reset } = useGenerateLandingPage();
+  const [viewMode, setViewMode] = useState<ViewMode>('preview');
+  const [editableHtml, setEditableHtml] = useState<string>('');
+
+  // Sync editableHtml when new content is generated
+  useEffect(() => {
+    if (generatedHtml) {
+      setEditableHtml(generatedHtml);
+    }
+  }, [generatedHtml]);
 
   const hasGenerated = generatedHtml !== null;
+
+  const handleReset = () => {
+    reset();
+    setViewMode('preview');
+    setEditableHtml('');
+  };
+
+  // Use editableHtml for preview and download (allows edits to reflect)
+  const currentHtml = editableHtml || generatedHtml || '';
 
   return (
     <main className="min-h-screen animated-gradient">
@@ -46,7 +67,7 @@ export default function Home() {
           {hasGenerated && (
             <div className="flex items-center gap-3">
               <button
-                onClick={reset}
+                onClick={handleReset}
                 className="
                   px-4
                   py-2
@@ -58,7 +79,8 @@ export default function Home() {
               >
                 ← New Page
               </button>
-              <DownloadButton html={generatedHtml} />
+              <ViewToggle mode={viewMode} onModeChange={setViewMode} />
+              <DownloadButton html={currentHtml} />
             </div>
           )}
         </div>
@@ -114,7 +136,7 @@ export default function Home() {
             </div>
 
             {/* Features */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-8">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 pt-8">
               {[
                 {
                   icon: (
@@ -127,6 +149,18 @@ export default function Home() {
                   ),
                   title: 'AI-Powered',
                   description: 'Gemini generates unique designs',
+                },
+                {
+                  icon: (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    />
+                  ),
+                  title: 'Edit Code',
+                  description: 'Customize the generated HTML',
                 },
                 {
                   icon: (
@@ -185,9 +219,13 @@ export default function Home() {
             </div>
           </div>
         ) : (
-          /* Preview View */
+          /* Preview/Edit View */
           <div className="h-[calc(100vh-180px)]">
-            <Preview html={generatedHtml} />
+            {viewMode === 'preview' ? (
+              <Preview html={currentHtml} />
+            ) : (
+              <CodeEditor value={editableHtml} onChange={setEditableHtml} />
+            )}
           </div>
         )}
       </div>
