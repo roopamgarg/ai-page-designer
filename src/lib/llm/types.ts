@@ -9,6 +9,14 @@ export interface LLMProvider {
    * @returns Promise resolving to the generated HTML string
    */
   generateLandingPage(prompt: string): Promise<string>;
+
+  /**
+   * Edit an existing landing page based on a follow-up prompt
+   * @param currentHtml - The current HTML to modify
+   * @param editPrompt - User's description of the changes to make
+   * @returns Promise resolving to the updated HTML string
+   */
+  editLandingPage(currentHtml: string, editPrompt: string): Promise<string>;
 }
 
 /**

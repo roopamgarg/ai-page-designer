@@ -8,8 +8,13 @@ export interface GenerationState {
   generatedHtml: string | null;
 }
 
+// Re-export chat types
+export * from './chat';
+
 export interface GenerateRequest {
   prompt: string;
+  /** If provided, this is an edit request */
+  currentHtml?: string;
 }
 
 export interface GenerateResponse {

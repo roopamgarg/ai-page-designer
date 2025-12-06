@@ -3,7 +3,12 @@
  */
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { LLMProvider } from './types';
-import { LANDING_PAGE_SYSTEM_PROMPT, buildUserPrompt } from './prompts';
+import { 
+  LANDING_PAGE_SYSTEM_PROMPT, 
+  EDIT_LANDING_PAGE_SYSTEM_PROMPT,
+  buildUserPrompt,
+  buildEditPrompt,
+} from './prompts';
 
 export class GeminiProvider implements LLMProvider {
   private client: GoogleGenerativeAI;
@@ -33,6 +38,21 @@ export class GeminiProvider implements LLMProvider {
     const text = response.text();
 
     // Clean up the response - remove any markdown code blocks if present
+    return this.cleanHtmlResponse(text);
+  }
+
+  async editLandingPage(currentHtml: string, editPrompt: string): Promise<string> {
+    const model = this.client.getGenerativeModel({
+      model: this.modelName,
+      systemInstruction: EDIT_LANDING_PAGE_SYSTEM_PROMPT,
+    });
+
+    const userPrompt = buildEditPrompt(currentHtml, editPrompt);
+
+    const result = await model.generateContent(userPrompt);
+    const response = result.response;
+    const text = response.text();
+
     return this.cleanHtmlResponse(text);
   }
 

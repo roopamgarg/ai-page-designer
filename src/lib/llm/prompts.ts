@@ -41,3 +41,34 @@ ${userInput}
 Remember: Return ONLY the complete HTML code with embedded CSS. No markdown, no explanations.`;
 };
 
+/**
+ * System prompt for editing existing landing pages
+ */
+export const EDIT_LANDING_PAGE_SYSTEM_PROMPT = `You are an expert web developer and designer. Your task is to modify an existing landing page based on the user's instructions.
+
+REQUIREMENTS:
+1. Apply ONLY the requested changes
+2. Preserve the overall structure and styling unless asked to change it
+3. Maintain responsive design
+4. Keep embedded CSS and make necessary style updates
+5. Return the COMPLETE modified HTML file
+
+OUTPUT:
+- Return ONLY the complete modified HTML code
+- Do NOT include any markdown formatting or code block markers
+- Do NOT include any explanations or comments outside the HTML
+- The HTML should be ready to save directly as an index.html file`;
+
+export const buildEditPrompt = (currentHtml: string, editRequest: string): string => {
+  return `Here is the current landing page HTML:
+
+\`\`\`html
+${currentHtml}
+\`\`\`
+
+Please make the following changes:
+${editRequest}
+
+Remember: Return ONLY the complete modified HTML code with all changes applied. No markdown, no explanations.`;
+};
+

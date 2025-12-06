@@ -22,11 +22,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateR
       );
     }
 
-    if (body.prompt.trim().length < 10) {
+    // For new generation, require at least 10 characters
+    // For edits, allow shorter prompts like "make it blue"
+    const isEditRequest = !!body.currentHtml;
+    const minLength = isEditRequest ? 3 : 10;
+
+    if (body.prompt.trim().length < minLength) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Please provide a more detailed description (at least 10 characters)',
+          error: `Please provide a more detailed description (at least ${minLength} characters)`,
           html: '' 
         },
         { status: 400 }
@@ -34,7 +39,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateR
     }
 
     const provider = getLLMProvider();
-    const html = await provider.generateLandingPage(body.prompt);
+    
+    // Determine if this is an edit or new generation
+    const html = isEditRequest
+      ? await provider.editLandingPage(body.currentHtml!, body.prompt)
+      : await provider.generateLandingPage(body.prompt);
 
     return NextResponse.json({
       success: true,

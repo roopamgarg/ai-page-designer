@@ -1,0 +1,2 @@
+export { FollowUpPrompt } from './FollowUpPrompt';
+
