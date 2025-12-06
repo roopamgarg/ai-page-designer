@@ -45,6 +45,19 @@ export interface LLMProvider {
   ): Promise<EditResult>;
 
   /**
+   * Edit a single HTML element
+   * @param elementHtml - The element HTML to modify
+   * @param tagName - The tag name of the element (h1, p, button, etc.)
+   * @param editPrompt - User's description of the changes to make
+   * @returns Promise resolving to the updated element HTML
+   */
+  editElement(
+    elementHtml: string,
+    tagName: string,
+    editPrompt: string
+  ): Promise<string>;
+
+  /**
    * Answer a question about a landing page without modifying it
    * @param currentHtml - The current HTML to analyze
    * @param question - User's question about the landing page

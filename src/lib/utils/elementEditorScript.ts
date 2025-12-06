@@ -603,36 +603,69 @@ export function generateEditorScript(): string {
   // Apply AI edit result
   function applyAiEditResult(newHtml) {
     const el = window.__pendingAiEditElement;
-    if (!el || !newHtml) {
+    
+    if (!el) {
+      console.error('AI Edit: No pending element found');
       resetAiEditState();
       return;
     }
     
-    try {
-      // Create a temporary container to parse the new HTML
-      const temp = document.createElement('div');
-      temp.innerHTML = newHtml.trim();
-      const newElement = temp.firstElementChild;
-      
-      if (newElement) {
-        // Replace the old element with the new one
-        el.parentNode.replaceChild(newElement, el);
-        
-        // Select the new element
-        selectedElement = newElement;
-        newElement.classList.add('element-editor-selected');
-        
-        // Update toolbar for new element
-        updateToolbar(newElement);
-        
-        // Notify parent of changes
-        notifyChange();
-      }
-    } catch (err) {
-      console.error('Failed to apply AI edit:', err);
+    if (!newHtml || typeof newHtml !== 'string') {
+      console.error('AI Edit: Invalid HTML received', newHtml);
+      showAiEditError('No HTML received');
+      return;
     }
     
-    resetAiEditState();
+    try {
+      // Clean and parse the new HTML
+      let cleanHtml = newHtml.trim();
+      
+      // Create a temporary container to parse the new HTML
+      const temp = document.createElement('div');
+      temp.innerHTML = cleanHtml;
+      
+      // Get the first element, handling possible whitespace nodes
+      let newElement = temp.firstElementChild;
+      
+      // If no element found, try wrapping in a span for text-only responses
+      if (!newElement && temp.textContent) {
+        const wrapper = document.createElement(el.tagName.toLowerCase());
+        wrapper.innerHTML = cleanHtml;
+        newElement = wrapper;
+      }
+      
+      if (!newElement) {
+        console.error('AI Edit: Could not parse HTML', cleanHtml);
+        showAiEditError('Invalid HTML returned');
+        return;
+      }
+      
+      // Ensure element still has a parent (hasn't been removed)
+      if (!el.parentNode) {
+        console.error('AI Edit: Element no longer in DOM');
+        showAiEditError('Element was removed');
+        return;
+      }
+      
+      // Replace the old element with the new one
+      el.parentNode.replaceChild(newElement, el);
+      
+      // Select the new element
+      selectedElement = newElement;
+      newElement.classList.add('element-editor-selected');
+      
+      // Update toolbar for new element
+      updateToolbar(newElement);
+      
+      // Notify parent of changes
+      notifyChange();
+      
+      resetAiEditState();
+      
+    } catch (err) {
+      console.error('Failed to apply AI edit:', err);
+      showAiEditError('Failed to apply changes');
+    }
   }
 
   // Reset AI edit state

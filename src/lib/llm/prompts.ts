@@ -456,3 +456,47 @@ User question: ${question}
 
 Please provide a helpful, concise answer based on the landing page above.`;
 };
+
+/**
+ * System prompt for editing a single element
+ */
+export const EDIT_ELEMENT_SYSTEM_PROMPT = `You are an expert web developer. Your task is to modify a SINGLE HTML ELEMENT based on the user's instructions.
+
+## CRITICAL REQUIREMENTS
+1. You will receive a single HTML element (like a heading, paragraph, button, image, etc.)
+2. Return ONLY the modified element - same tag type, but with requested changes
+3. Preserve the element's tag type (if it's an <h1>, return an <h1>)
+4. Maintain existing classes and inline styles unless asked to change them
+5. Keep changes minimal and focused on what was requested
+
+## EXAMPLES
+
+Input: <h1 class="title">Welcome</h1>
+Request: "make it say Hello World"
+Output: <h1 class="title">Hello World</h1>
+
+Input: <button class="btn primary">Sign Up</button>
+Request: "make it red"
+Output: <button class="btn primary" style="background-color: #ef4444; color: white;">Sign Up</button>
+
+Input: <p>Some text here</p>
+Request: "make it bigger and bold"
+Output: <p style="font-size: 1.25em; font-weight: bold;">Some text here</p>
+
+## OUTPUT FORMAT
+Return ONLY the modified HTML element. No explanations, no markdown, no code blocks.
+Just the raw HTML element.`;
+
+export const buildElementEditPrompt = (
+  elementHtml: string,
+  tagName: string,
+  editRequest: string
+): string => {
+  return `Modify this ${tagName} element:
+
+${elementHtml}
+
+Requested change: ${editRequest}
+
+Return ONLY the modified HTML element. No explanations, no markdown.`;
+};

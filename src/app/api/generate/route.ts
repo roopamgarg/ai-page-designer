@@ -35,9 +35,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateR
     }
 
     // Determine request type for edit/generate modes
-    const isSectionEdit = !!body.sectionHtml && !!body.sectionId;
-    const isFullPageEdit = !!body.currentHtml && !isSectionEdit;
-    const isNewGeneration = !isFullPageEdit && !isSectionEdit;
+    const isElementEdit = !!body.sectionHtml && body.sectionId === 'element';
+    const isSectionEdit = !!body.sectionHtml && !!body.sectionId && !isElementEdit;
+    const isFullPageEdit = !!body.currentHtml && !isSectionEdit && !isElementEdit;
+    const isNewGeneration = !isFullPageEdit && !isSectionEdit && !isElementEdit;
 
     // For new generation, require at least 10 characters
     // For edits, allow shorter prompts like "make it blue"
@@ -57,7 +58,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateR
     let html: string;
     let summary: string | undefined;
     
-    if (isSectionEdit) {
+    if (isElementEdit) {
+      // Edit single element - returns just html string
+      const tagName = body.sectionName?.replace(' element', '') || 'element';
+      html = await provider.editElement(
+        body.sectionHtml!,
+        tagName,
+        body.prompt
+      );
+      summary = 'Element updated';
+    } else if (isSectionEdit) {
       // Edit specific section - returns { html, summary }
       const result = await provider.editSection(
         body.sectionHtml!,

@@ -8,10 +8,12 @@ import {
   LANDING_PAGE_SYSTEM_PROMPT, 
   EDIT_LANDING_PAGE_SYSTEM_PROMPT,
   EDIT_SECTION_SYSTEM_PROMPT,
+  EDIT_ELEMENT_SYSTEM_PROMPT,
   ASK_MODE_SYSTEM_PROMPT,
   buildUserPrompt,
   buildEditPrompt,
   buildSectionEditPrompt,
+  buildElementEditPrompt,
   buildAskPrompt,
 } from './prompts';
 
@@ -92,6 +94,26 @@ export class GeminiProvider implements LLMProvider {
     const result = await model.generateContent(userPrompt);
     const response = result.response;
     return response.text();
+  }
+
+  async editElement(
+    elementHtml: string,
+    tagName: string,
+    editPrompt: string
+  ): Promise<string> {
+    const model = this.client.getGenerativeModel({
+      model: this.modelName,
+      systemInstruction: EDIT_ELEMENT_SYSTEM_PROMPT,
+    });
+
+    const userPrompt = buildElementEditPrompt(elementHtml, tagName, editPrompt);
+
+    const result = await model.generateContent(userPrompt);
+    const response = result.response;
+    const text = response.text();
+
+    // Clean up any markdown or extra formatting
+    return this.cleanHtmlResponse(text);
   }
 
   /**
