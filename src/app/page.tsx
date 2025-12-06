@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PromptForm } from '@/components/PromptForm';
 import { Preview } from '@/components/Preview';
 import { DownloadButton } from '@/components/DownloadButton';
@@ -19,6 +19,7 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
   const [editableHtml, setEditableHtml] = useState<string>('');
   const [showChat, setShowChat] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Sync editableHtml when new content is generated
   useEffect(() => {
@@ -26,6 +27,30 @@ export default function Home() {
       setEditableHtml(generatedHtml);
     }
   }, [generatedHtml]);
+
+  // Handle escape key to exit fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
+
+  // Prevent body scroll when fullscreen
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isFullscreen]);
 
   const hasGenerated = generatedHtml !== null;
 
@@ -45,11 +70,89 @@ export default function Home() {
     setViewMode('preview');
   };
 
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen((prev) => !prev);
+  }, []);
+
   // Use editableHtml for preview and download (allows edits to reflect)
   const currentHtml = editableHtml || generatedHtml || '';
 
   return (
     <main className="min-h-screen animated-gradient">
+      {/* Fullscreen Overlay */}
+      {isFullscreen && (
+        <div className="fixed inset-0 z-50 bg-zinc-950">
+          {/* Fullscreen Header */}
+          <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-zinc-950 to-transparent">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                <svg
+                  className="w-4 h-4 text-zinc-900"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+              </div>
+              <span className="text-sm font-medium text-zinc-300">Fullscreen Preview</span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <DownloadButton html={currentHtml} />
+              <button
+                onClick={toggleFullscreen}
+                className="
+                  flex
+                  items-center
+                  gap-2
+                  px-4
+                  py-2
+                  text-sm
+                  bg-zinc-800
+                  border
+                  border-zinc-700
+                  text-zinc-200
+                  rounded-lg
+                  hover:bg-zinc-700
+                  transition-all
+                  duration-200
+                "
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+                Exit Fullscreen
+              </button>
+            </div>
+          </div>
+
+          {/* Fullscreen Preview Content */}
+          <div className="h-full pt-16">
+            <iframe
+              srcDoc={currentHtml}
+              title="Fullscreen Preview"
+              className="w-full h-full border-0 bg-white"
+            />
+          </div>
+
+          {/* ESC hint */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-zinc-800/80 backdrop-blur-sm border border-zinc-700 rounded-full text-xs text-zinc-400">
+            Press <kbd className="px-1.5 py-0.5 mx-1 bg-zinc-700 rounded text-zinc-300">ESC</kbd> to exit fullscreen
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="border-b border-zinc-800/50">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
@@ -122,6 +225,38 @@ export default function Home() {
                   />
                 </svg>
                 <span className="hidden sm:inline">Chat</span>
+              </button>
+
+              {/* Fullscreen Button */}
+              <button
+                onClick={toggleFullscreen}
+                className="
+                  flex
+                  items-center
+                  gap-2
+                  px-3
+                  py-2
+                  text-sm
+                  text-zinc-400
+                  border
+                  border-zinc-700
+                  rounded-lg
+                  hover:text-zinc-200
+                  hover:border-zinc-600
+                  transition-all
+                  duration-200
+                "
+                title="Fullscreen preview"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                  />
+                </svg>
+                <span className="hidden sm:inline">Fullscreen</span>
               </button>
               
               <ViewToggle mode={viewMode} onModeChange={setViewMode} />
@@ -340,7 +475,7 @@ export default function Home() {
             </div>
           </div>
         )}
-      </div>
-    </main>
+        </div>
+      </main>
   );
 }
