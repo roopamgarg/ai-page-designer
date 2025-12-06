@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { PromptForm } from '@/components/PromptForm';
 import { Preview } from '@/components/Preview';
 import { DownloadButton } from '@/components/DownloadButton';
@@ -14,18 +14,30 @@ import { FollowUpPrompt } from '@/components/FollowUpPrompt';
 import { ChatHistory } from '@/components/ChatHistory';
 import { SectionSelector, EditTarget } from '@/components/SectionSelector';
 import { ChatModeToggle } from '@/components/ChatModeToggle';
+import { UndoRedoButtons } from '@/components/UndoRedoButtons';
 import { useGenerateLandingPage } from '@/hooks/useGenerateLandingPage';
+import { useHistory } from '@/hooks/useHistory';
 import { parseSections, Section } from '@/lib/utils/sectionParser';
 import { ChatMode, GenerateResponse } from '@/types';
 
 export default function Home() {
   const { isLoading, error, generatedHtml, messages, generate, edit, editSection, ask, reset } = useGenerateLandingPage();
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
-  const [editableHtml, setEditableHtml] = useState<string>('');
+  const { 
+    value: editableHtml, 
+    setValue: setEditableHtml,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    clear: clearHistory,
+  } = useHistory<string>('');
   const [showChat, setShowChat] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editTarget, setEditTarget] = useState<EditTarget>('entire-page');
   const [chatMode, setChatMode] = useState<ChatMode>('edit');
+  
+  const hasGenerated = generatedHtml !== null;
   
   // Parse sections once and share between selector and submit handler
   const currentSections = useMemo<Section[]>(() => {
@@ -33,24 +45,44 @@ export default function Home() {
     return parseSections(editableHtml);
   }, [editableHtml]);
 
+  // Track the last synced generatedHtml to detect new generations
+  const lastSyncedHtmlRef = useRef<string | null>(null);
+  
   // Sync editableHtml when new content is generated
   useEffect(() => {
-    if (generatedHtml) {
-      setEditableHtml(generatedHtml);
+    if (generatedHtml && generatedHtml !== lastSyncedHtmlRef.current) {
+      // Skip history for initial generation (when no previous sync)
+      // Record history for AI edits (when we have previously synced content)
+      const isInitialGeneration = lastSyncedHtmlRef.current === null;
+      setEditableHtml(generatedHtml, !isInitialGeneration);
+      lastSyncedHtmlRef.current = generatedHtml;
     }
-  }, [generatedHtml]);
+  }, [generatedHtml, setEditableHtml]);
 
-  // Handle escape key to exit fullscreen
+  // Handle keyboard shortcuts (escape, undo, redo)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Exit fullscreen on Escape
       if (e.key === 'Escape' && isFullscreen) {
         setIsFullscreen(false);
+        return;
+      }
+
+      // Undo/Redo shortcuts (only when generated content exists)
+      if (hasGenerated && (e.metaKey || e.ctrlKey)) {
+        if (e.key === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          undo();
+        } else if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
+          e.preventDefault();
+          redo();
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreen]);
+  }, [isFullscreen, hasGenerated, undo, redo]);
 
   // Prevent body scroll when fullscreen
   useEffect(() => {
@@ -64,12 +96,12 @@ export default function Home() {
     };
   }, [isFullscreen]);
 
-  const hasGenerated = generatedHtml !== null;
-
   const handleReset = () => {
     reset();
     setViewMode('preview');
-    setEditableHtml('');
+    setEditableHtml('', false);
+    clearHistory();
+    lastSyncedHtmlRef.current = null;
   };
 
   const handleFollowUpSubmit = (prompt: string) => {
@@ -267,6 +299,15 @@ export default function Home() {
               >
                 ← New Page
               </button>
+              
+              {/* Undo/Redo Buttons */}
+              <UndoRedoButtons
+                canUndo={canUndo}
+                canRedo={canRedo}
+                onUndo={undo}
+                onRedo={redo}
+                disabled={isLoading}
+              />
               
               {/* Toggle Chat Button */}
               <button
@@ -545,7 +586,12 @@ export default function Home() {
                     onAiEditRequest={handleAiEditRequest}
                   />
                 ) : (
-                  <CodeEditor value={editableHtml} onChange={setEditableHtml} />
+                  <CodeEditor 
+                    value={editableHtml} 
+                    onChange={setEditableHtml}
+                    onUndo={undo}
+                    onRedo={redo}
+                  />
                 )}
               </div>
 

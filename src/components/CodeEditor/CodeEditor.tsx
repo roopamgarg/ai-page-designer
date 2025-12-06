@@ -4,16 +4,35 @@
  */
 'use client';
 
-import { ChangeEvent } from 'react';
+import { ChangeEvent, KeyboardEvent } from 'react';
 
 interface CodeEditorProps {
   value: string;
   onChange: (value: string) => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
-export function CodeEditor({ value, onChange }: CodeEditorProps) {
+export function CodeEditor({ value, onChange, onUndo, onRedo }: CodeEditorProps) {
   const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     onChange(e.target.value);
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    // Intercept Ctrl+Z / Cmd+Z for undo
+    if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+      if (onUndo) {
+        e.preventDefault();
+        onUndo();
+      }
+    }
+    // Intercept Ctrl+Shift+Z / Cmd+Shift+Z or Ctrl+Y for redo
+    if ((e.metaKey || e.ctrlKey) && ((e.key === 'z' && e.shiftKey) || e.key === 'y')) {
+      if (onRedo) {
+        e.preventDefault();
+        onRedo();
+      }
+    }
   };
 
   return (
@@ -42,6 +61,7 @@ export function CodeEditor({ value, onChange }: CodeEditorProps) {
         <textarea
           value={value}
           onChange={handleChange}
+          onKeyDown={handleKeyDown}
           spellCheck={false}
           className="
             absolute
@@ -81,4 +101,3 @@ export function CodeEditor({ value, onChange }: CodeEditorProps) {
     </div>
   );
 }
-
