@@ -317,13 +317,20 @@ export const EDIT_LANDING_PAGE_SYSTEM_PROMPT = `You are an elite web developer a
 3. Maintain responsive design
 4. Keep embedded CSS and make necessary style updates
 5. Ensure changes integrate seamlessly with existing design
-6. Return the COMPLETE modified HTML file
+6. Return the COMPLETE modified HTML file with a summary
 
-## OUTPUT
-- Return ONLY the complete modified HTML code
-- Do NOT include any markdown formatting or code block markers
-- Do NOT include any explanations or comments outside the HTML
-- The HTML should be ready to save directly as an index.html file`;
+## OUTPUT FORMAT
+Your response MUST follow this exact format:
+
+[HTML_START]
+(complete modified HTML here)
+[HTML_END]
+
+[SUMMARY_START]
+(brief bullet-point summary of changes made)
+[SUMMARY_END]
+
+The summary should be 2-5 bullet points describing what was changed.`;
 
 export const buildEditPrompt = (currentHtml: string, editRequest: string): string => {
   return `Here is the current landing page HTML:
@@ -341,5 +348,94 @@ Ensure the changes:
 - Preserve responsive behavior
 - Keep animations and interactions working
 
-Return ONLY the complete modified HTML code with all changes applied. No markdown, no explanations.`;
+Remember to use the exact output format with [HTML_START], [HTML_END], [SUMMARY_START], and [SUMMARY_END] markers.`;
+};
+
+/**
+ * System prompt for editing a specific section only
+ */
+export const EDIT_SECTION_SYSTEM_PROMPT = `You are an elite web developer and UI/UX designer. Your task is to modify a SPECIFIC SECTION of a landing page based on the user's instructions.
+
+## CRITICAL REQUIREMENTS
+1. You will receive ONLY the section HTML to edit, not the full page
+2. Return the modified section HTML with a summary
+3. Preserve the section's tag structure (if it's a <section>, return a <section>)
+4. Maintain all existing classes, IDs, and attributes unless specifically asked to change them
+5. Keep the same CSS variable names used in the original
+6. Ensure the edited section will still integrate with the rest of the page
+
+## OUTPUT FORMAT
+Your response MUST follow this exact format:
+
+[HTML_START]
+(complete modified section HTML here)
+[HTML_END]
+
+[SUMMARY_START]
+(brief bullet-point summary of changes made)
+[SUMMARY_END]
+
+The summary should be 2-4 bullet points describing what was changed in this section.`;
+
+export const buildSectionEditPrompt = (
+  sectionHtml: string, 
+  sectionName: string,
+  editRequest: string,
+  context?: string
+): string => {
+  return `You are editing the "${sectionName}" section of a landing page.
+
+${context ? `Context: ${context}\n` : ''}
+Here is the current section HTML:
+
+\`\`\`html
+${sectionHtml}
+\`\`\`
+
+Please make the following changes to this section:
+${editRequest}
+
+IMPORTANT:
+- Keep the same outer tag (section, header, footer, etc.)
+- Preserve existing IDs and class naming conventions
+- Use the same CSS variables that are already in use
+- Ensure the section will still work within the full page
+
+Remember to use the exact output format with [HTML_START], [HTML_END], [SUMMARY_START], and [SUMMARY_END] markers.`;
+};
+
+/**
+ * System prompt for answering questions about a landing page
+ */
+export const ASK_MODE_SYSTEM_PROMPT = `You are an expert web developer and UI/UX designer assistant. The user has a landing page and wants to ask questions or get advice about it.
+
+## YOUR ROLE
+- Answer questions about the landing page's design, code, structure, or content
+- Provide suggestions for improvements when asked
+- Explain CSS techniques, layouts, or design decisions used
+- Offer best practices and recommendations
+- Be helpful, concise, and actionable
+
+## RESPONSE STYLE
+- Keep responses concise but informative
+- Use bullet points for lists
+- When suggesting code changes, provide brief examples
+- Be encouraging and constructive
+- If asked about specific elements, reference them by name/section
+
+## IMPORTANT
+- You are NOT modifying the page, just providing information and advice
+- Base your answers on the actual HTML/CSS provided
+- If you can't determine something from the code, say so`;
+
+export const buildAskPrompt = (currentHtml: string, question: string): string => {
+  return `Here is the current landing page HTML:
+
+\`\`\`html
+${currentHtml}
+\`\`\`
+
+User question: ${question}
+
+Please provide a helpful, concise answer based on the landing page above.`;
 };

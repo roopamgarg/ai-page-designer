@@ -22,10 +22,26 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateR
       );
     }
 
+    const provider = getLLMProvider();
+
+    // Handle ask mode
+    if (body.mode === 'ask' && body.currentHtml) {
+      const answer = await provider.askQuestion(body.currentHtml, body.prompt);
+      return NextResponse.json({
+        success: true,
+        html: '',
+        answer,
+      });
+    }
+
+    // Determine request type for edit/generate modes
+    const isSectionEdit = !!body.sectionHtml && !!body.sectionId;
+    const isFullPageEdit = !!body.currentHtml && !isSectionEdit;
+    const isNewGeneration = !isFullPageEdit && !isSectionEdit;
+
     // For new generation, require at least 10 characters
     // For edits, allow shorter prompts like "make it blue"
-    const isEditRequest = !!body.currentHtml;
-    const minLength = isEditRequest ? 3 : 10;
+    const minLength = isNewGeneration ? 10 : 3;
 
     if (body.prompt.trim().length < minLength) {
       return NextResponse.json(
@@ -38,16 +54,33 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateR
       );
     }
 
-    const provider = getLLMProvider();
+    let html: string;
+    let summary: string | undefined;
     
-    // Determine if this is an edit or new generation
-    const html = isEditRequest
-      ? await provider.editLandingPage(body.currentHtml!, body.prompt)
-      : await provider.generateLandingPage(body.prompt, body.stylePreset);
+    if (isSectionEdit) {
+      // Edit specific section - returns { html, summary }
+      const result = await provider.editSection(
+        body.sectionHtml!,
+        body.sectionName || 'Section',
+        body.prompt,
+        body.sectionContext
+      );
+      html = result.html;
+      summary = result.summary;
+    } else if (isFullPageEdit) {
+      // Edit entire page - returns { html, summary }
+      const result = await provider.editLandingPage(body.currentHtml!, body.prompt);
+      html = result.html;
+      summary = result.summary;
+    } else {
+      // Generate new page - returns just html string
+      html = await provider.generateLandingPage(body.prompt, body.stylePreset);
+    }
 
     return NextResponse.json({
       success: true,
       html,
+      summary,
     });
 
   } catch (error) {
@@ -67,4 +100,3 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateR
     );
   }
 }
-

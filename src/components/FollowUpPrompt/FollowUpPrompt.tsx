@@ -12,9 +12,11 @@ interface FollowUpPromptProps {
   isLoading: boolean;
   /** Compact mode for chat panel */
   compact?: boolean;
+  /** Custom placeholder text */
+  placeholder?: string;
 }
 
-export function FollowUpPrompt({ onSubmit, isLoading, compact = true }: FollowUpPromptProps) {
+export function FollowUpPrompt({ onSubmit, isLoading, compact = true, placeholder }: FollowUpPromptProps) {
   const [prompt, setPrompt] = useState('');
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -44,7 +46,7 @@ export function FollowUpPrompt({ onSubmit, isLoading, compact = true }: FollowUp
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask for changes..."
+            placeholder={placeholder || "Ask for changes..."}
             rows={1}
             disabled={isLoading}
             className="

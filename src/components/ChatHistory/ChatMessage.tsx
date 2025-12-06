@@ -1,6 +1,6 @@
 /**
  * ChatMessage Component
- * Responsibility: Render a single chat message
+ * Responsibility: Render a single chat message with markdown support
  */
 'use client';
 
@@ -9,6 +9,55 @@ import { ChatMessage as ChatMessageType } from '@/types';
 interface ChatMessageProps {
   message: ChatMessageType;
   onViewHtml?: (html: string) => void;
+}
+
+/**
+ * Simple markdown-like renderer for chat messages
+ * Supports: **bold**, bullet points (- or •)
+ */
+function renderContent(content: string) {
+  const lines = content.split('\n');
+  
+  return lines.map((line, lineIndex) => {
+    // Check if it's a bullet point
+    const bulletMatch = line.match(/^[\-•]\s*(.+)$/);
+    
+    if (bulletMatch) {
+      return (
+        <div key={lineIndex} className="flex items-start gap-2 ml-1">
+          <span className="text-amber-400 mt-0.5">•</span>
+          <span>{renderInlineMarkdown(bulletMatch[1])}</span>
+        </div>
+      );
+    }
+    
+    // Regular line with inline markdown
+    return (
+      <div key={lineIndex} className={lineIndex > 0 ? 'mt-1' : ''}>
+        {renderInlineMarkdown(line)}
+      </div>
+    );
+  });
+}
+
+/**
+ * Render inline markdown (bold text)
+ */
+function renderInlineMarkdown(text: string) {
+  // Split by **bold** patterns
+  const parts = text.split(/\*\*(.+?)\*\*/g);
+  
+  return parts.map((part, index) => {
+    // Every odd index is a bold match
+    if (index % 2 === 1) {
+      return (
+        <strong key={index} className="font-semibold text-zinc-100">
+          {part}
+        </strong>
+      );
+    }
+    return part;
+  });
 }
 
 export function ChatMessage({ message, onViewHtml }: ChatMessageProps) {
@@ -75,7 +124,9 @@ export function ChatMessage({ message, onViewHtml }: ChatMessageProps) {
             }
           `}
         >
-          <p className="whitespace-pre-wrap">{message.content}</p>
+          <div className="space-y-0.5">
+            {renderContent(message.content)}
+          </div>
           
           {/* View HTML button for assistant messages */}
           {!isUser && message.html && onViewHtml && (
@@ -117,4 +168,3 @@ export function ChatMessage({ message, onViewHtml }: ChatMessageProps) {
     </div>
   );
 }
-

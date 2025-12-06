@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { PromptForm } from '@/components/PromptForm';
 import { Preview } from '@/components/Preview';
 import { DownloadButton } from '@/components/DownloadButton';
@@ -12,14 +12,26 @@ import { CodeEditor } from '@/components/CodeEditor';
 import { ViewToggle, ViewMode } from '@/components/ViewToggle';
 import { FollowUpPrompt } from '@/components/FollowUpPrompt';
 import { ChatHistory } from '@/components/ChatHistory';
+import { SectionSelector, EditTarget } from '@/components/SectionSelector';
+import { ChatModeToggle } from '@/components/ChatModeToggle';
 import { useGenerateLandingPage } from '@/hooks/useGenerateLandingPage';
+import { parseSections, Section } from '@/lib/utils/sectionParser';
+import { ChatMode } from '@/types';
 
 export default function Home() {
-  const { isLoading, error, generatedHtml, messages, generate, edit, reset } = useGenerateLandingPage();
+  const { isLoading, error, generatedHtml, messages, generate, edit, editSection, ask, reset } = useGenerateLandingPage();
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
   const [editableHtml, setEditableHtml] = useState<string>('');
   const [showChat, setShowChat] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [editTarget, setEditTarget] = useState<EditTarget>('entire-page');
+  const [chatMode, setChatMode] = useState<ChatMode>('edit');
+  
+  // Parse sections once and share between selector and submit handler
+  const currentSections = useMemo<Section[]>(() => {
+    if (!editableHtml) return [];
+    return parseSections(editableHtml);
+  }, [editableHtml]);
 
   // Sync editableHtml when new content is generated
   useEffect(() => {
@@ -61,8 +73,33 @@ export default function Home() {
   };
 
   const handleFollowUpSubmit = (prompt: string) => {
-    // Use the current editable HTML (which may have manual edits)
-    edit(editableHtml, prompt);
+    // Handle ask mode - just ask a question without editing
+    if (chatMode === 'ask') {
+      ask(editableHtml, prompt);
+      return;
+    }
+
+    // Handle edit mode
+    if (editTarget === 'entire-page') {
+      // Edit entire page
+      edit(editableHtml, prompt);
+    } else {
+      // Edit specific section - use the cached sections
+      const section = currentSections.find(s => s.id === editTarget);
+      
+      if (section) {
+        editSection({
+          fullHtml: editableHtml,
+          sectionId: editTarget,
+          sectionName: section.name,
+          editPrompt: prompt,
+        });
+      } else {
+        // Fallback to full page edit if section not found
+        console.warn(`Section "${editTarget}" not found, falling back to full page edit`);
+        edit(editableHtml, prompt);
+      }
+    }
   };
 
   const handleViewVersion = (html: string) => {
@@ -431,9 +468,34 @@ export default function Home() {
                   />
                 </div>
 
-                {/* Chat Input */}
-                <div className="p-3 border-t border-zinc-700/50">
-                  <FollowUpPrompt onSubmit={handleFollowUpSubmit} isLoading={isLoading} />
+                {/* Chat Input with Mode Toggle and Section Selector */}
+                <div className="p-3 border-t border-zinc-700/50 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <ChatModeToggle
+                      mode={chatMode}
+                      onModeChange={setChatMode}
+                      disabled={isLoading}
+                    />
+                    {chatMode === 'edit' && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-zinc-500">Target:</span>
+                        <SectionSelector
+                          sections={currentSections}
+                          selectedTarget={editTarget}
+                          onTargetChange={setEditTarget}
+                          disabled={isLoading}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <FollowUpPrompt 
+                    onSubmit={handleFollowUpSubmit} 
+                    isLoading={isLoading}
+                    placeholder={chatMode === 'ask' 
+                      ? "Ask a question about the page..." 
+                      : "Describe what you'd like to change..."
+                    }
+                  />
                 </div>
               </div>
             )}
